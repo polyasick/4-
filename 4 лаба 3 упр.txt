@@ -1,0 +1,125 @@
+data Singleton a = Singleton a
+
+instance Functor Singleton where
+	fmap f (Singleton x) = Singleton (f x)
+
+instance Applicative Singleton where
+	pure x = Singleton x
+	(Singleton f) <*> (Singleton x) = Singleton (f x)
+
+instance Monad Singleton where
+	(Singleton x) >>=f
+		= f x
+
+instance Foldable Singleton where
+	foldMap f (Singleton x) = f x
+	foldr binop acc (Singleton x) = binop x acc
+
+instance Traversable Singleton where
+	traverse f (Singleton x) = fmap Singleton (f x)
+	sequenceA (Singleton x) = fmap Singleton x
+
+
+
+data Productish a b = Productish a b
+
+instance Functor Productish where
+	fmap f (Productish a b) = Productish (fmap f a) (fmap f b)
+	
+instance Applicative Productish where
+(Productish f1 f2) <*> (Productish x y) = Productish (f1 <*> x) (f2 <*> y)
+	
+instance Monad Productish where
+	(Productish l r) >>= f
+	  = Productish (l >>= f) (r >>= f)
+
+instance Foldable Productish where
+	foldMap f (Productish l r) = foldMap f l <> foldMap f r
+	foldr binop acc (Productish l r) 
+	  = foldr binop (foldr binop acc r) l
+	  
+instance Traversable Productish where
+	traverse f (Productish l r) = liftA2 Productish (traverse f l) (traverse f r)
+	sequenceA (Productish l r) = Productish <$> sequenceA l <*> sequenceA r
+
+
+
+data NotQuiteList a = Value a | Layer (NotQuiteList a)
+
+instance Functor NotQuiteList where
+	fmap f (Value x) = Value (f x)
+	fmap f (Layer a) = Layer (fmap f a)
+	fmap f (NotQuiteList b) = NotQuiteList (fmap f b)
+
+instance Applicative NotQuiteList where
+	pure x = Value x
+	(Layer f) <*> x = Layer (f <*> x)
+	(Value f) <*> (Layer x) = Layer (f <$> x)
+	(Value f) <*> (Value x) = Value (f x)
+	
+instance Monad NotQuiteList where
+	(Value x) >>= f
+	  = f x
+	(Layer y) >>= f
+	  = Layer (y >>= f) 
+	  
+instance Foldable NotQuiteList where
+	foldMap f (Value x) = f x
+	foldMap f (Layer y) = foldMap f y
+	foldr binop acc (Value x) = binop x acc
+	foldr binop acc (Layer y) = foldr binop acc y
+
+instance Traversable NotQuiteList where
+	traverse f (Value x) = fmap Value (f x)
+	traverse (Layer y) = liftA2 Layer (traverse f y)
+	sequenceA (Value x) = fmap Value x
+	sequenceA (Layer y) = Layer <$> sequenceA y
+	
+
+
+data NotEmpty a = LastValue a | MidValue a (NotEmpty a)
+	
+instance Functor NotEmpty where
+	fmap f (LastValue x) = LastValue (f x)
+	fmap f (MidValue a b) = MidValue (f a) (fmap f b)
+	
+instance Applicative NotEmpty where
+	pure x = LastValue x
+	(MidValue f1 f2) <*> x = MidValue (f1 <*> x) (f2 <*> x)
+	(LastValue f) <*> (MidValue x y) = MidValue (f x) (f <$> y)
+	(LastValue f) <*> (LastValue x) = LastValue (f x)
+	
+instance Foldable NotEmpty where
+	foldMap f (LastValue x) = f x
+	foldMap f (MidValue a b) = f a <> foldMap f b
+	foldr binop acc (LastValue x) = binop x acc
+	foldr binop acc (MidValue a b) 
+	  = foldr binop (binop a acc) b
+	  
+instance Traversable NotEmpty where
+	traverse f (LastValue x) = fmap LastValue (f x)
+	traverse f (MidValue a b) = liftA2 MidValue (fmap f a) (traverse f b)
+	sequenceA (LastValue x) = fmap LastValue x
+	sequenceA (MidValue a b) = MidValue <$> fmap a <*> sequenceA b
+	  
+
+
+
+
+
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
